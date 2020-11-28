@@ -59,7 +59,7 @@ LRESULT CALLBACK FilterDlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-void fill_table(InfoTable& lv, std::string expression) {
+void fill_table(InfoTable& lv, std::wstring expression) {
 
 		truth_table_gen gen{ expression };
 
@@ -67,17 +67,20 @@ void fill_table(InfoTable& lv, std::string expression) {
 
 		for (int i{}; i < res.size(); i++) {
 			if (i == 0) {
-				for (int j = 0; j < res[i].size(); j++) {
-					lv.add_text_column_l(std::wstring{ res[i][j].begin(), res[i][j].end() }.c_str(), j, 40);
+				for (int j{}; j < res[i].size(); j++) {
+					size_t width = res[i][j].find_first_not_of(L' ');
+					width = (width != std::string::npos) ? width * 40 : res[i][j].length() * 40;
+						 
+					lv.add_text_column_c( res[i][j].c_str(), j, 40);
 				}
 			}
 			else {
 				for (int j{}; j < res[i].size(); j++) {
 					if (j == 0) {
-						lv.insert_item(i - 1, std::wstring{ res[i][j].begin(), res[i][j].end() });
+						lv.insert_item(i - 1, res[i][j]);
 					}
 					else {
-						lv.insert_subitem(i - 1, j, std::wstring{ res[i][j].begin(), res[i][j].end() });
+						lv.insert_subitem(i - 1, j, res[i][j]);
 					}
 				}
 			}
@@ -127,8 +130,12 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			lv.clear();
  
 			const int len = GetWindowTextLength(text_edit) + 1;
+
+			if (not (len - 1))
+				return TRUE;
 			 
 			std::wstring buffer;
+		
 			buffer.resize(len);
 		 
 			GetWindowText(text_edit, buffer.data(), len);
@@ -174,7 +181,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 		lv = CreateWindowExW(0l, WC_LISTVIEW, L"",
 			WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CHILD | LVS_REPORT | LVS_EDITLABELS,
-			40, 500, 340, 100,
+			40, 510, 370, 130,
 			hWnd, (HMENU)ID_TRUTH_TABLE, GetModuleHandle(NULL), 0);
 		SendMessage(lv, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
 

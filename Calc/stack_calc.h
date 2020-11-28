@@ -1,79 +1,139 @@
-#pragma once
-
+п»ї#include <string>
 #include <stack>
-#include <string>
-#include <functional>
 #include <variant>
-#include <unordered_map>
+#include <functional>
 
 template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
 template<class... Ts> overload(Ts...)->overload<Ts...>;
 
-template <typename T>
-class expression_stack {
 
+
+class expr_result {
+public:
+	bool result;
+	std::wstring expr;
+
+
+	expr_result(std::wstring varible, bool value) : expr{ varible }, result{ value } {
+
+	}
+
+	expr_result(bool value) : expr{ value ? L"true" : L"false" }, result{ value } {
+
+	}
+
+	expr_result operator & (expr_result r) {
+		return { expr + L" в€§ " + r.expr, result && r.result };
+
+	}
+
+	expr_result operator | (expr_result r) {
+		return { expr + L" в€Ё " + r.expr, result || r.result };
+
+	}
+
+
+	expr_result implication(expr_result r) {
+		return { expr + L" в‡’ " + r.expr, !result || r.result };
+	}
+
+	expr_result operator ==(expr_result r) {
+		return { expr + L" в‡” " + r.expr, result == r.result };
+	}
+
+	expr_result operator ^ (expr_result r) {
+		return { expr + L" вЉ• " + r.expr, result != r.result };
+	}
+
+	expr_result operator ! () {
+		return { L"В¬" + expr, !result };
+
+	}
+
+	operator std::wstring() {
+		return expr;
+	}
+
+	operator bool() {
+		return result;
+	}
 };
 
-template<>
-class expression_stack<bool> {
+
+class expression_stack {
 public:
-	using unary_operation = std::function<bool(bool)>;
-	using binary_operation = std::function<bool(bool, bool)>;
+
+	using T = expr_result;
+	using unary_operation = std::function<T(T)>;
+	using binary_operation = std::function<T(T, T)>;
 	using operations = std::variant<unary_operation, binary_operation>;
 
-	//тут должно быть больше нуля а то скобки становятся операторами
-	std::unordered_map <std::string, uint16_t> priority = { {"!", 5}, {"&", 4}, {"|", 3}, {"^", 3}, {">", 2}, {"=", 1 } };
+	std::function<void(T)> on_eval = [](T) {};
+	//ГІГіГІ Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЎГ®Г«ГјГёГҐ Г­ГіГ«Гї Г  ГІГ® Г±ГЄГ®ГЎГЄГЁ Г±ГІГ Г­Г®ГўГїГІГ±Гї Г®ГЇГҐГ°Г ГІГ®Г°Г Г¬ГЁ
+	std::unordered_map <std::wstring, uint16_t> priority = { {L"!", 5}, {L"&", 4}, {L"|", 3}, {L"^", 3}, {L">", 2}, {L"=", 1 } };
 
-	std::unordered_map<std::string, operations> op_dictionary = {
-	   {"&", [](bool l, bool r) {return l && r; } },
-	   {"|", [](bool l, bool r) {return l || r; } },
-	   {"!", [](bool b) {return !b; }},
-	   {"^", [](bool l, bool r) {return l != r; }},
-	   {">", [](bool l, bool r) {return !l || r; }},
-	   {"=", [](bool l, bool r) {return  l == r; }},
+	std::unordered_map<std::wstring, operations> op_dictionary = {
+	   {L"&", std::mem_fn(&T::operator&) },
+	   {L"|", std::mem_fn(&T::operator|) },
+	   {L"!", std::mem_fn(&T::operator!)},
+	   {L"^", std::mem_fn(&T::operator^)},
+	   {L">", std::mem_fn(&T::implication)},
+	   {L"=", std::mem_fn(&T::operator==)},
 
 	};
 
-	std::unordered_map<std::string, bool> to_bool = { {"true", true}, {"false", false}, {"1", true}, {"0", false} };
+	std::unordered_map<std::wstring, bool> to_bool = { {L"true", true}, {L"false", false}, {L"1", true}, {L"0", false} };
 
-	expression_stack() {
+	std::unordered_map<std::wstring, bool> variable_values;
+
+	expression_stack(std::unordered_map<std::wstring, bool> variable_values) : variable_values{ variable_values } {
+
+	}
+
+	expression_stack() : variable_values{} {
 
 	}
 
 
 
 
-	std::stack <bool> operands;
-	std::stack<std::string> operators;
+	std::stack<T> operands;
+	std::stack<std::wstring> operators;
 
 
-	
+
 
 	void eval_top() {
-//нужна ли эта проверка?
-		if (operators.top() == "(") {
+		//Г­ГіГ¦Г­Г  Г«ГЁ ГЅГІГ  ГЇГ°Г®ГўГҐГ°ГЄГ ?
+		if (operators.top() == L"(") {
 			operators.pop();
 			return;
 		}
-		
+
 		std::visit(
 			overload{
 				[this](const unary_operation& operation) {
 
-				bool b = operands.top();
+				T b = operands.top();
 				operands.pop();
 
-				operands.push(operation(b));
+				T res = operation(b);
+				on_eval(res);
+
+				operands.push(res);
 			},
 				[this](const binary_operation& operation) {
 
-				bool r = operands.top();
+				T r = operands.top();
 				operands.pop();
 
-				bool l = operands.top();
+				T l = operands.top();
 				operands.pop();
 
-				operands.push(operation(l, r));
+				T res = operation(l, r);
+				on_eval(res);
+
+				operands.push(res);
 			}
 			}, op_dictionary[operators.top()]
 				);
@@ -81,7 +141,7 @@ public:
 
 
 	}
-	bool force_eval() {
+	T force_eval() {
 		while (not operators.empty()) {
 			eval_top();
 		}
@@ -91,9 +151,18 @@ public:
 	void push(bool variable) {
 		operands.push(variable);
 	}
-	void push(std::string token) {
+	void push(std::wstring token) {
 		//std::cout << token << " ";
-		if (to_bool.contains(token)) {
+		if (variable_values.contains(token)) {
+			if (not operators.empty() and
+				operators.top() == L"(") {
+				operands.push({ L"(" + token, variable_values[token] });
+			}
+			else
+				operands.push({ token, variable_values[token] });
+			
+		}
+		else if (to_bool.contains(token)) {
 			//std::cout << "variable " << std::endl;
 			operands.push(to_bool[token]);
 		}
@@ -124,15 +193,18 @@ public:
 
 		}
 
-		else if (token == ")") {
+		else if (token == L")") {
+			//РґРѕР±Р°РІРёРј Рє С‚РѕРєРµРЅСѓ
+			operands.top().expr += L")";
+			 
 
-
+			//
 			do {
 				eval_top();
-			} while (operators.top() != "(");
+			} while (operators.top() != L"(");
 			operators.pop();
 		}
-		else if (token == "(") {
+		else if (token == L"(") {
 
 			operators.push(token);
 
@@ -145,26 +217,26 @@ public:
 
 class truth_table_gen {
 
-	std::vector<std::string> variables;
-	std::vector<std::string> expression;
-	expression_stack<bool> stack;
+	std::vector<std::wstring> variables;
+	std::vector<std::wstring> expression;
+	expression_stack stack;
 public:
-	truth_table_gen(std::string expression) {
+	truth_table_gen(std::wstring expression) {
 		for (auto r_token : expression) {
 			if (r_token != ' ') {
-				if (stack.op_dictionary.contains(std::string(1, r_token))) {
-					std::string op;
+				if (stack.op_dictionary.contains(std::wstring(1, r_token))) {
+					std::wstring op;
 					op.push_back(r_token);
 					this->expression.push_back(op);
 				}
-				else if (stack.to_bool.contains(std::string(1, r_token)) or r_token == ')' or r_token == '(') {
-					std::string var;
+				else if (stack.to_bool.contains(std::wstring(1, r_token)) or r_token == L')' or r_token == L'(') {
+					std::wstring var;
 					var.push_back(r_token);
 					this->expression.push_back(var);
 				}
 
 				else {
-					std::string var;
+					std::wstring var;
 					var.push_back(r_token);
 					this->expression.push_back(var);
 					if (std::find(variables.begin(), variables.end(), var) == variables.end()) {
@@ -178,49 +250,57 @@ public:
 		}
 	}
 
-	std::vector<std::vector<std::string>> generate() {
+	std::vector<std::vector<std::wstring>> generate() {
 		//
 		if (variables.empty()) {
-			expression_stack<bool> stack;
+			//expression_stack stack;
 			for (auto&& token : expression) {
 				stack.push(token);
 			}
-			return  { {stack.force_eval() ? "1" : "0"} };
+			return  { {stack.force_eval() ? L"1" : L"0"} };
 		}
-		std::vector<std::vector<std::string>> ret;
+		std::vector<std::vector<std::wstring>> ret;
 		//
 
 
-		ret.push_back(variables); //имена переменныых
-		ret[0].push_back("f");
-		ret[0].insert(ret[0].begin(), "");
+		ret.push_back(variables); //ГЁГ¬ГҐГ­Г  ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»Г»Гµ
+	 
+		ret[0].insert(ret[0].begin(), L"");
 
 		for (uint32_t i = 0; i < 2 << (variables.size() - 1); i++) {
-			std::unordered_map<std::string, bool> varibale_values;
+			std::unordered_map<std::wstring, bool> varibale_values;
 
-			std::vector<std::string> row;
+			std::vector<std::wstring> row;
 
-			row.push_back(std::to_string(i));
+			row.push_back(std::to_wstring(i));
 
 			for (int j = 0; auto && var : variables) {
 				varibale_values[var] = (i >> (variables.size() - 1 - j)) & 1;
 
-				row.push_back(varibale_values[var] ? "1" : "0");
+				row.push_back(varibale_values[var] ? L"1" : L"0");
 
 				if (j >= variables.size()) break;
 				j++;
 			}
 
-			expression_stack<bool> stack;
+
+			expression_stack stack{ varibale_values };
+			stack.on_eval = [&](expr_result r) {
+				if (i == 0) {
+					ret[0].push_back(r.operator std::wstring());
+				}
+
+				row.push_back(r.operator bool() ? L"1" : L"0");
+			};
 			for (auto&& token : expression) {
 				if (varibale_values.contains(token)) {
-					stack.push(varibale_values[token]);
+					stack.push(token);
 				}
 				else {
 					stack.push(token);
 				}
 			}
-			row.push_back(stack.force_eval() ? "1" : "0");
+			stack.force_eval();
 			ret.push_back(row);
 
 
@@ -232,3 +312,4 @@ public:
 	}
 
 };
+

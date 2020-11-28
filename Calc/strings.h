@@ -13,7 +13,7 @@ std::wstring substring_replace(std::wstring subject, const std::wstring& search,
 	return subject;
 }
 
-std::string process_string(std::wstring to_process) {
+std::wstring process_string(std::wstring to_process) {
 
 
 	std::unordered_map<wchar_t, wchar_t>  replace_dictionary{ {L'∨', L'|', }, {L'∧', L'&' },
@@ -29,5 +29,5 @@ std::string process_string(std::wstring to_process) {
 
 	to_process = substring_replace(to_process, L"false", L"0");
 
-	return { to_process.begin(), to_process.end() };
+	return to_process;
 }
