@@ -1,7 +1,5 @@
-﻿#pragma once
-#include <string>
-#include <unordered_map>
-#include <algorithm>
+﻿#include "framework.h"
+
 
 std::wstring substring_replace(std::wstring subject, const std::wstring& search,
 	const std::wstring& replace) {

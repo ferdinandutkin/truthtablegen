@@ -1,12 +1,7 @@
-﻿#include <windows.h>
- 
-#include <string>
-#include <cctype>
-#include <vector>
-#include <commctrl.h>
-
+﻿#include "framework.h"
 #include "strings.h"
 #include "Calc.h"
+
 #include "stack_calc.h"
 #include "infotable.h"
 
@@ -59,7 +54,7 @@ LRESULT CALLBACK FilterDlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-void fill_table(InfoTable& lv, std::wstring expression) {
+void fill_table(text_table& lv, std::wstring expression) {
 
 		truth_table_gen gen{ expression };
 
@@ -67,17 +62,14 @@ void fill_table(InfoTable& lv, std::wstring expression) {
 
 		for (int i{}; i < res.size(); i++) {
 			if (i == 0) {
-				for (int j{}; j < res[i].size(); j++) {
-					size_t width = res[i][j].find_first_not_of(L' ');
-					width = (width != std::string::npos) ? width * 40 : res[i][j].length() * 40;
-						 
-					lv.add_text_column_c( res[i][j].c_str(), j, 40);
+				for (auto& column : res[i]) {
+					lv.append_column( column, 40);
 				}
 			}
 			else {
 				for (int j{}; j < res[i].size(); j++) {
 					if (j == 0) {
-						lv.insert_item(i - 1, res[i][j]);
+						lv.append_item(res[i][j]);
 					}
 					else {
 						lv.insert_subitem(i - 1, j, res[i][j]);
@@ -100,7 +92,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	
 	HWND text_edit = GetDlgItem(hWnd, IDC_INPUT);
 
-	static InfoTable lv;
+	static text_table lv;
  
  
 	switch (uMsg) {
@@ -139,6 +131,9 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			buffer.resize(len);
 		 
 			GetWindowText(text_edit, buffer.data(), len);
+			 
+
+			SetFocus(text_edit);
 			 
 			buffer.resize(len - 1);
 

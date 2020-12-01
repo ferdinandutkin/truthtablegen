@@ -9,8 +9,13 @@
 // Файлы заголовков Windows
 #include <windows.h>
 // Файлы заголовков среды выполнения C
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <tchar.h>
 #include <commctrl.h>
+
+#include <cctype>
+#include <string>
+#include <vector>
+#include <stack>
+#include <algorithm>
+#include <variant>
+#include <functional>
+

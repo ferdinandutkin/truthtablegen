@@ -1,7 +1,4 @@
-﻿#include <string>
-#include <stack>
-#include <variant>
-#include <functional>
+﻿#include "Calc.h"
 
 template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
 template<class... Ts> overload(Ts...)->overload<Ts...>;
@@ -9,11 +6,12 @@ template<class... Ts> overload(Ts...)->overload<Ts...>;
 
 
 class expr_result {
-public:
+	friend class expression_stack;
+
 	bool result;
 	std::wstring expr;
 
-
+public:
 	expr_result(std::wstring varible, bool value) : expr{ varible }, result{ value } {
 
 	}
