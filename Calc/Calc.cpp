@@ -92,7 +92,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	
 	HWND text_edit = GetDlgItem(hWnd, IDC_INPUT);
 
-	static text_table lv;
+	static text_table table;
  
  
 	switch (uMsg) {
@@ -119,7 +119,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		switch (command) {
 
 		case KEYEQ: {
-			lv.clear();
+			table.clear();
  
 			const int len = GetWindowTextLength(text_edit) + 1;
 
@@ -138,7 +138,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			buffer.resize(len - 1);
 
 			 
-		    fill_table(lv, process_string(buffer));
+		    fill_table(table, process_string(buffer));
 			 
  
 			
@@ -150,7 +150,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	
 
 		case KEYCLR: {
-			lv.clear();
+			table.clear();
 			 
 			SendMessage(text_edit, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(L""));
 			break;
@@ -174,11 +174,11 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 		SetWindowSubclass(text_edit, FilterDlgProc, 0, 0);
 
-		lv = CreateWindowExW(0l, WC_LISTVIEW, L"",
+		table = CreateWindowExW(0l, WC_LISTVIEW, L"",
 			WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CHILD | LVS_REPORT | LVS_EDITLABELS,
-			40, 510, 370, 130,
+			40, 380, 370, 250,
 			hWnd, (HMENU)ID_TRUTH_TABLE, GetModuleHandle(NULL), 0);
-		SendMessage(lv, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
+		SendMessage(table, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
 
 		 
 		break;
