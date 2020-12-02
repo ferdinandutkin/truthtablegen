@@ -6,7 +6,7 @@
 #include "infotable.h"
 
 
-
+bool enable_scrolling;//АААААААААААААААААААААААА
 
  
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -54,25 +54,30 @@ LRESULT CALLBACK FilterDlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-void fill_table(text_table& lv, std::wstring expression) {
+void fill_table(text_table& table, text_table& column, std::wstring expression) {
 
 		truth_table_gen gen{ expression };
 
 		auto res = gen.generate();
 
+		column.append_column(L"", 40);
+		for (int i{}; i < res.size() - 1; i++)
+			column.insert_item(std::to_wstring(i), i);
+
+
 		for (int i{}; i < res.size(); i++) {
 			if (i == 0) {
 				for (auto& column : res[i]) {
-					lv.append_column( column, 40);
+					table.append_column( column, 40);
 				}
 			}
 			else {
 				for (int j{}; j < res[i].size(); j++) {
 					if (j == 0) {
-						lv.append_item(res[i][j]);
+						table.append_item(res[i][j]);
 					}
 					else {
-						lv.insert_subitem(i - 1, j, res[i][j]);
+						table.insert_subitem(i - 1, j, res[i][j]);
 					}
 				}
 			}
@@ -81,6 +86,7 @@ void fill_table(text_table& lv, std::wstring expression) {
 		}
 	
 	 
+		enable_scrolling = true;
 
 
 
@@ -92,14 +98,47 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	
 	HWND text_edit = GetDlgItem(hWnd, IDC_INPUT);
 
-	static text_table lv;
+	static text_table table;
+	static text_table column;
+	 
  
  
 	switch (uMsg) {
+/*
 
+	case WM_NOTIFY: {
+
+	
+
+		switch (((LPNMHDR)lParam)->code)
+		{
+			auto SetTopIndex = [](HWND listview, long index) {
+				RECT rc;
+
+				SendMessage(listview, LVM_GETITEMRECT, 0, reinterpret_cast<LPARAM>(&rc));
+				SendMessage(listview, LVM_SCROLL, 0, (index - ListView_GetTopIndex(listview)) * (rc.bottom - rc.top)); };
+
+		case LVN_ENDSCROLL:
+			if (wParam == ID_TRUTH_TABLE) {
+				 
+			//	MessageBox(NULL, L"", L"", MB_OK);
+				SetTopIndex(column, ListView_GetTopIndex(table));
+			}
+			 
+			break;
+		}
+		break;
+
+	
+
+		 
+
+	}
+	*/
 		
 	case WM_COMMAND: {
 
+		
 		int command = LOWORD(wParam);
 	
 		
@@ -119,7 +158,8 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		switch (command) {
 
 		case KEYEQ: {
-			lv.clear();
+			table.clear();
+			column.clear();
  
 			const int len = GetWindowTextLength(text_edit) + 1;
 
@@ -138,7 +178,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			buffer.resize(len - 1);
 
 			 
-		    fill_table(lv, process_string(buffer));
+		    fill_table(table, column, process_string(buffer));
 			 
  
 			
@@ -150,7 +190,7 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	
 
 		case KEYCLR: {
-			lv.clear();
+			table.clear();
 			 
 			SendMessage(text_edit, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(L""));
 			break;
@@ -174,11 +214,32 @@ BOOL CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 		SetWindowSubclass(text_edit, FilterDlgProc, 0, 0);
 
-		lv = CreateWindowExW(0l, WC_LISTVIEW, L"",
+		table = CreateWindowExW(0l, WC_LISTVIEW, L"",
 			WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CHILD | LVS_REPORT | LVS_EDITLABELS,
-			40, 510, 370, 130,
+			60, 380, 350, 250,
 			hWnd, (HMENU)ID_TRUTH_TABLE, GetModuleHandle(NULL), 0);
-		SendMessage(lv, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
+
+		column = CreateWindowExW(0l, WC_LISTVIEW, L"",
+			WS_VISIBLE | WS_CLIPCHILDREN  | WS_CHILD   | LVS_REPORT | LVS_EDITLABELS,
+			20, 380, 40, 250,
+			hWnd, (HMENU)ID_TRUTH_TABLE_COLUMN, GetModuleHandle(NULL), 0);
+
+
+		SetProp(table, L"column", column.operator HWND());
+
+		SetWindowSubclass(table, [](HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) -> LRESULT {
+			HWND column = (HWND)GetProp(wnd, L"column");
+			if (enable_scrolling) {
+				SendMessageW(column, msg, wParam, lParam);
+			 }
+			 
+ 
+			return DefSubclassProc(wnd, msg, wParam, lParam);
+			}, 0, 0);
+
+		SendMessage(table, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
+		SendMessage(column,WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
+		ShowScrollBar(column, SB_HORZ, FALSE);
 
 		 
 		break;

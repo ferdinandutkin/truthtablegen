@@ -27,7 +27,9 @@
 #define IDR_MAINFRAME                   128
 #define IDC_INPUT                       1000
 #define IDC_HOTKEY1                     1001
+#define IDC_INPUT2                      1001
 #define ID_TRUTH_TABLE                  11111
+#define ID_TRUTH_TABLE_COLUMN           11112
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

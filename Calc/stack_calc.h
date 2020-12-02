@@ -263,14 +263,14 @@ public:
 
 		ret.push_back(variables); //èìåíà ïåðåìåííûûõ
 	 
-		ret[0].insert(ret[0].begin(), L"");
+		 
 
 		for (uint32_t i = 0; i < 2 << (variables.size() - 1); i++) {
 			std::unordered_map<std::wstring, bool> varibale_values;
 
 			std::vector<std::wstring> row;
 
-			row.push_back(std::to_wstring(i));
+			 
 
 			for (int j = 0; auto && var : variables) {
 				varibale_values[var] = (i >> (variables.size() - 1 - j)) & 1;
